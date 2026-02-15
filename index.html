@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Snack Climber</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: linear-gradient(#87CEEB, #ffffff);
+  margin: 0;
+}
+
+#characterSelect img {
+  width: 80%;
+  max-width: 800px;
+  cursor: pointer;
+  border: 5px solid #333;
+  border-radius: 10px;
+}
+
+#gameArea { display: none; }
+
+.snack-container {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  margin-top: 30px;
+}
+
+.snack {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.snack:hover {
+  transform: scale(1.1);
+}
+
+.snack img {
+  width: 150px;
+  height: 150px;
+}
+
+#ladder {
+  font-size: 60px;
+  margin-top: 20px;
+}
+
+#message {
+  font-size: 18px;
+  margin-top: 20px;
+  cursor: pointer;
+}
+
+#scoreBoard {
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  margin-top: 20px;
+}
+</style>
+</head>
+<body>
+
+<h1>Snack Climber</h1>
+
+<div id="characterSelect">
+  <h2>Choose Your Character</h2>
+  <img src="characters.png" onclick="startGame()">
+</div>
+
+<div id="gameArea">
+  <h2 id="levelTitle">Level 1</h2>
+  <div id="ladder">🧍<br>🪜</div>
+  <div class="snack-container" id="snackOptions"></div>
+  <div id="message"></div>
+  <div id="scoreBoard">Score: 0 | Junk Choices: 0</div>
+</div>
+
+<script>
+
+// ---------------- SNACK DATA ----------------
+
+const healthySnacks = {
+  "Apple": "Rich in vitamin C, which supports immune health and helps protect cells from oxidative stress.",
+  "Blueberries": "High in antioxidants, which support brain health and reduce inflammation.",
+  "Almonds": "Packed with vitamin E, which nourishes skin and protects cells from damage.",
+  "Greek yogurt": "High in calcium, which strengthens bones and supports muscle function.",
+  "Carrot sticks": "Rich in vitamin A, which supports healthy vision and immune function.",
+  "Spinach smoothie": "Loaded with folate, which supports cell repair and healthy red blood cell formation.",
+  "Hard-boiled egg": "Contains vitamin B12, which supports energy production and nervous system health.",
+  "Avocado slices": "High in potassium, which supports heart health and healthy blood pressure levels.",
+  "Pumpkin seeds": "Rich in magnesium, which supports muscle relaxation and nervous system balance.",
+  "Orange slices": "Packed with vitamin C, which supports collagen production and immune defense.",
+  "Cottage cheese": "Contains phosphorus, which supports bone strength and energy metabolism.",
+  "Walnuts": "High in omega-3 fatty acids, which support brain function and reduce inflammation.",
+  "Red bell pepper strips": "Extremely rich in vitamin C, which strengthens immunity and skin health.",
+  "Chia pudding": "Rich in fiber, which supports digestion and stabilizes blood sugar.",
+  "Banana": "High in vitamin B6, which supports neurotransmitter production and steady energy.",
+  "Edamame": "Contains iron, which supports oxygen transport in the blood.",
+  "Strawberries": "Rich in manganese, which supports metabolism and antioxidant defenses.",
+  "Hummus with cucumbers": "Provides folate, which supports cell growth and tissue repair.",
+  "Dark chocolate (70%+)": "Contains magnesium, which supports relaxation and heart health.",
+  "Trail mix": "Provides zinc, which supports immune function and wound healing."
+};
+
+const unhealthySnacks = {
+  "Potato chips": "High in refined oils and sodium, which can promote inflammation and high blood pressure.",
+  "Candy bars": "Loaded with added sugars that spike blood sugar and promote fat storage.",
+  "Sugary soda": "Contains large amounts of liquid sugar that strain metabolism and increase insulin resistance.",
+  "Frosted donuts": "High in refined flour and sugar, causing rapid blood sugar spikes and crashes.",
+  "Gummy candy": "Pure sugar with artificial colors that provide no nutritional value.",
+  "Cheese puffs": "Highly processed with refined oils and additives that offer minimal nutrients.",
+  "Ice cream": "High in sugar and saturated fat, contributing to excess calorie intake.",
+  "Sugary cereal bars": "Often disguised as healthy but packed with added sugars and refined grains.",
+  "Milk chocolate": "Contains more sugar than cocoa, reducing its nutritional benefit.",
+  "Fried mozzarella sticks": "Deep-fried in refined oils, increasing unhealthy fat intake.",
+  "Fast-food fries": "Deep-fried and high in sodium, contributing to inflammation and poor heart health.",
+  "Packaged cupcakes": "High in sugar and refined flour with little nourishment.",
+  "Energy drinks": "Loaded with caffeine and sugar, which can stress the nervous system.",
+  "Processed lunch meat roll-ups": "Contain preservatives and high sodium levels.",
+  "Sugary yogurt": "Often contains more sugar than protein, leading to blood sugar spikes.",
+  "Fruity tarts": "Made with refined flour and corn syrup with minimal fiber.",
+  "Nacho cheese dip": "Highly processed with artificial flavors and unhealthy fats.",
+  "Chocolate chip cookies": "High in sugar and refined flour, offering little nutrient density.",
+  "Fruit snacks": "Mostly sugar and corn syrup with very little real fruit.",
+  "Slushie drinks": "Concentrated sugar syrups that rapidly spike blood glucose levels."
+};
+
+// -------------- GAME STATE --------------
+
+let level = 1;
+let score = 0;
+let junkCount = 0;
+
+// -------------- FUNCTIONS --------------
+
+function startGame() {
+  document.getElementById("characterSelect").style.display = "none";
+  document.getElementById("gameArea").style.display = "block";
+  nextLevel();
+}
+
+function nextLevel() {
+  if (level > 10) {
+    document.getElementById("message").innerHTML = "<h2>You reached the top! 🎉 Final Score: " + score + "</h2>";
+    document.getElementById("snackOptions").innerHTML = "";
+    return;
+  }
+
+  document.getElementById("levelTitle").innerText = "Level " + level;
+
+  const healthyKeys = Object.keys(healthySnacks);
+  const unhealthyKeys = Object.keys(unhealthySnacks);
+
+  const healthy = healthyKeys[Math.floor(Math.random()*healthyKeys.length)];
+  const unhealthy = unhealthyKeys[Math.floor(Math.random()*unhealthyKeys.length)];
+
+  const options = [
+    {name: healthy, type: "healthy"},
+    {name: unhealthy, type: "unhealthy"}
+  ];
+
+  options.sort(() => Math.random() - 0.5);
+
+  const container = document.getElementById("snackOptions");
+  container.innerHTML = "";
+
+  options.forEach(option => {
+    const div = document.createElement("div");
+    div.className = "snack";
+    div.innerHTML = `
+      <img src="https://source.unsplash.com/150x150/?${option.name}">
+      <p>${option.name}</p>
+    `;
+    div.onclick = () => chooseSnack(option);
+    container.appendChild(div);
+  });
+}
+
+function chooseSnack(option) {
+  let message = "";
+
+  if (option.type === "healthy") {
+    score++;
+    message = "<strong>Great Choice!</strong><br>" + healthySnacks[option.name];
+  } else {
+    score--;
+    junkCount++;
+
+    if (junkCount === 1)
+      message = "<strong>Limit such snacks for good health!</strong><br>" + unhealthySnacks[option.name];
+    else if (junkCount === 2)
+      message = "<strong>Feeling a little sluggish because of too much junk food!</strong><br>" + unhealthySnacks[option.name];
+    else {
+      document.getElementById("message").innerHTML =
+        "<h2>Game Over! You have a tummy ache from too much junk food! 🤢</h2>";
+      document.getElementById("snackOptions").innerHTML = "";
+      return;
+    }
+  }
+
+  document.getElementById("message").innerHTML =
+    message + "<br><br><em>(Click here to climb to next level)</em>";
+
+  document.getElementById("scoreBoard").innerText =
+    "Score: " + score + " | Junk Choices: " + junkCount;
+
+  document.getElementById("snackOptions").innerHTML = "";
+
+  document.getElementById("message").onclick = () => {
+    level++;
+    document.getElementById("message").innerHTML = "";
+    nextLevel();
+  };
+}
+
+</script>
+
+</body>
+</html>
+
