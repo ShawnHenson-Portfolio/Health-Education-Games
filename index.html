@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Healthy Snack Pro</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: linear-gradient(135deg,#d4f7d4,#fff4d0);
+  margin:0;
+  padding-bottom: 50px;
+}
+
+h1 { margin-top:20px; }
+
+.screen { display:none; padding:20px; }
+.active { display:block; }
+
+.character-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  max-width:800px;
+  margin:auto;
+}
+
+.character {
+  cursor:pointer;
+  border-radius:12px;
+  transition:transform .2s;
+  background: white;
+  padding: 5px;
+}
+.character:hover { transform:scale(1.08); background:#e8f5e9; }
+
+.snack-container {
+  display:flex;
+  justify-content:center;
+  align-items: center;
+  gap: 30px;
+  margin-top:20px;
+}
+
+/* Added .disabled class to stop clicks after selection */
+.snack-card {
+  cursor:pointer;
+  padding:20px;
+  border-radius:20px;
+  background:white;
+  box-shadow:0 10px 20px rgba(0,0,0,0.15);
+  transition:transform .3s;
+  width: 160px;
+}
+.snack-card:hover { transform:scale(1.05); }
+.snack-card.disabled { pointer-events: none; opacity: 0.7; }
+
+.food-img {
+  width:120px;
+  height:120px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+}
+
+.game-char-display {
+  width: 180px;
+  height: auto;
+  max-height: 250px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.health-container {
+  width:320px;
+  height:28px;
+  background:#ccc;
+  margin:20px auto;
+  border-radius:20px;
+  overflow:hidden;
+}
+.health-fill {
+  height:100%;
+  width:50%;
+  background:linear-gradient(to right,red,orange,green);
+  transition:width .4s ease;
+}
+
+#face { font-size:55px; }
+
+/* FEEDBACK BOX STYLES */
+#resultBox {
+  display: none; /* Hidden by default */
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 15px;
+  border: 4px solid #ccc;
+  background: white;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+button {
+  padding:12px 30px;
+  font-size:18px;
+  font-weight: bold;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  background:#28a745;
+  color:white;
+  margin-top: 10px;
+}
+button:hover { background:#1f7e35; }
+
+/* Styles for feedback text */
+.good-text { color: #2e7d32; }
+.bad-text { color: #c62828; }
+
+</style>
+</head>
+
+<body>
+
+<h1>🥗 Healthy Snack Pro</h1>
+
+<!-- CHARACTER SCREEN -->
+<div id="characterScreen" class="screen active">
+  <h2>Choose Your Character</h2>
+  <div class="character-grid">
+    <img src="assets/characters/char1.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char2.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char3.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char4.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char5.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char6.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char7.png" class="character" onclick="startGame(this)">
+    <img src="assets/characters/char8.png" class="character" onclick="startGame(this)">
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen">
+  <div id="face">🙂</div>
+  <div class="health-container">
+    <div id="healthFill" class="health-fill"></div>
+  </div>
+  <h3 id="scoreDisplay">Score: 0</h3>
+  <h4 id="roundDisplay"></h4>
+
+  <div class="snack-container">
+    <!-- Left Card -->
+    <div class="snack-card" id="leftCard" onclick="chooseSnack(this)">
+      <img id="leftImg" class="food-img" src="" alt="">
+      <p id="leftName"></p>
+    </div>
+
+    <!-- Selected Character -->
+    <img id="selectedGameChar" src="" class="game-char-display">
+
+    <!-- Right Card -->
+    <div class="snack-card" id="rightCard" onclick="chooseSnack(this)">
+      <img id="rightImg" class="food-img" src="" alt="">
+      <p id="rightName"></p>
+    </div>
+  </div>
+
+  <!-- IN-GAME FEEDBACK BOX (Appears below snacks) -->
+  <div id="resultBox">
+      <h2 id="resultTitle"></h2>
+      <p id="resultDetails" style="font-size: 18px; line-height: 1.5;"></p>
+      <button onclick="continueGame()">Next Round ➡</button>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div id="endScreen" class="screen">
+  <h2 id="endMessage"></h2>
+  <div style="font-size:70px;" id="endFace"></div>
+  <h3 id="finalScore"></h3>
+  <button onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+let score = 0;
+let round = 1;
+const maxRounds = 20;
+
+const healthySnacks = [
+  "Apple","Blueberries","Almonds","Greek yogurt","Carrot sticks",
+  "Spinach smoothie","Hard boiled egg","Avocado slices","Pumpkin seeds","Orange slices",
+  "Cottage cheese","Walnuts","Red bell pepper","Chia pudding","Banana",
+  "Edamame","Strawberries","Hummus with Cucumbers","Dark chocolate","Trail mix"
+];
+
+const unhealthySnacks = [
+  "Potato chips","Candy bars","Sugary soda","Frosted donuts","Gummy candy",
+  "Cheese puffs","Ice cream","Sugary cereal","Milk chocolate","Mozzarella sticks",
+  "Fast food fries","Cupcakes","Energy drinks","Processed meat","Sugary yogurt",
+  "Fruity tarts","Nacho Cheese dip","Cookies","Fruit snacks","Slushies"
+];
+
+// SPECIFIC FACTS FOR EACH FOOD
+const foodFacts = {
+  // HEALTHY
+  "Apple": "Rich in fiber and Quercetin (an antioxidant), supporting heart health and immune function.",
+  "Blueberries": "Loaded with Vitamin C and K, protecting cells from damage and boosting brain health.",
+  "Almonds": "Packed with magnesium and Vitamin E, excellent for strong bones and healthy skin.",
+  "Greek yogurt": "High in probiotics and protein, aiding digestion and muscle repair.",
+  "Carrot sticks": "Full of Beta-carotene and Vitamin A, essential for great vision and immune support.",
+  "Spinach smoothie": "Provides iron and folate, giving you energy and supporting healthy blood.",
+  "Hard boiled egg": "A complete protein source with Choline, supporting brain development and muscle strength.",
+  "Avocado slices": "Contains heart-healthy monounsaturated fats and potassium for blood pressure regulation.",
+  "Pumpkin seeds": "High in zinc and magnesium, great for immunity and sleep quality.",
+  "Orange slices": "Famous for Vitamin C, vital for skin health and fighting off colds.",
+  "Cottage cheese": "Rich in casein protein and calcium, building strong bones and sustained energy.",
+  "Walnuts": "The best nut source of Omega-3s, supporting brain function and reducing inflammation.",
+  "Red bell pepper": "Has even more Vitamin C than oranges, keeping skin youthful and immunity high.",
+  "Chia pudding": "Loaded with fiber and Omega-3s, stabilizing blood sugar and digestion.",
+  "Banana": "Great source of potassium and quick carbohydrates for instant energy and muscle function.",
+  "Edamame": "A plant-based complete protein rich in folate and Vitamin K.",
+  "Strawberries": "Full of antioxidants and Vitamin C, promoting heart health and glowing skin.",
+  "Hummus with Cucumbers": "Provides fiber, plant protein, and hydration for steady energy levels.",
+  "Dark chocolate": "Contains fiber, flavonoids and iron (in moderation), boosting mood and blood flow.",
+  "Trail mix": "A mix of healthy fats and fiber from nuts and seeds for long-lasting endurance.",
+
+  // UNHEALTHY
+  "Potato chips": "Deep-fried and high in sodium/trans fats, increasing risk of high blood pressure.",
+  "Candy bars": "Extremely high in processed sugar and saturated fats, leading to energy crashes.",
+  "Sugary soda": "Liquid sugar with zero nutrients; spikes blood sugar and damages teeth.",
+  "Frosted donuts": "Refined flour and sugar deep-fried in oil, offering empty calories with no nutrition.",
+  "Gummy candy": "Made almost entirely of sugar and corn syrup, which sticks to teeth and causes cavities.",
+  "Cheese puffs": "Highly processed corn and artificial flavors with very little actual cheese or nutrition.",
+  "Ice cream": "High in heavy cream and sugar, which can lead to weight gain if eaten too often.",
+  "Sugary cereal": "Often advertised as healthy but packed with added sugar and refined grains.",
+  "Milk chocolate": "Mostly sugar and fat with very little cocoa benefits compared to dark chocolate.",
+  "Mozzarella sticks": "Deep-fried cheese is very high in saturated fat and calories.",
+  "Fast food fries": "Soaked in unhealthy oils and heavily salted, bad for heart health.",
+  "Cupcakes": "Dense in sugar and refined flour, causing rapid insulin spikes.",
+  "Energy drinks": "excessive caffeine and sugar can cause jitters, heart palpitations, and sleep issues.",
+  "Processed meat": "Contains nitrates and high sodium, linked to heart issues.",
+  "Sugary yogurt": "Flavored yogurts can have as much sugar as a candy bar, canceling out probiotic benefits.",
+  "Fruity tarts": "Refined pastry and sugary filling with no actual fruit benefits.",
+  "Nacho Cheese dip": "Artificially flavored oil-based sauce loaded with sodium and preservatives.",
+  "Cookies": "High in sugar and butter, offering little fiber or vitamins.",
+  "Fruit snacks": "Mostly corn syrup and food dye, not real fruit.",
+  "Slushies": "Pure frozen sugar water that spikes insulin levels instantly."
+};
+
+function imageFileNameFromName(name) {
+  return "assets/snacks/" + name + ".png";
+}
+
+function startGame(element) {
+  const charSrc = element.src;
+  document.getElementById("selectedGameChar").src = charSrc;
+  document.getElementById("characterScreen").classList.remove("active");
+  document.getElementById("gameScreen").classList.add("active");
+  loadRound();
+}
+
+function loadRound() {
+  if (score <= -3) return endGame(true);
+  if (round > maxRounds) return endGame(false);
+
+  // Hide result box from previous round
+  document.getElementById("resultBox").style.display = "none";
+  
+  // Re-enable clicks
+  document.getElementById("leftCard").classList.remove("disabled");
+  document.getElementById("rightCard").classList.remove("disabled");
+
+  document.getElementById("roundDisplay").innerText = "Round: " + round + " / " + maxRounds;
+
+  const hIndex = Math.floor(Math.random() * healthySnacks.length);
+  const uIndex = Math.floor(Math.random() * unhealthySnacks.length);
+  const healthyOnLeft = Math.random() < 0.5;
+
+  if (healthyOnLeft) {
+    setupCard("leftImg","leftName",healthySnacks[hIndex],true);
+    setupCard("rightImg","rightName",unhealthySnacks[uIndex],false);
+  } else {
+    setupCard("leftImg","leftName",unhealthySnacks[uIndex],false);
+    setupCard("rightImg","rightName",healthySnacks[hIndex],true);
+  }
+}
+
+function setupCard(imgId, nameId, name, isHealthy) {
+  setFoodImage(imgId, name);
+  document.getElementById(nameId).innerText = name;
+  document.getElementById(imgId).parentElement.dataset.healthy = isHealthy;
+  document.getElementById(imgId).parentElement.dataset.snackName = name;
+}
+
+function setFoodImage(id, name) {
+  const imgEl = document.getElementById(id);
+  imgEl.src = imageFileNameFromName(name);
+  imgEl.alt = name;
+}
+
+function chooseSnack(card) {
+  // Prevent double clicking
+  if(document.getElementById("resultBox").style.display === "block") return;
+
+  const isHealthy = card.dataset.healthy === "true";
+  const snackName = card.dataset.snackName;
+  const fact = foodFacts[snackName];
+
+  // Disable cards so user can't click again
+  document.getElementById("leftCard").classList.add("disabled");
+  document.getElementById("rightCard").classList.add("disabled");
+
+  const resultTitle = document.getElementById("resultTitle");
+  const resultDetails = document.getElementById("resultDetails");
+  const resultBox = document.getElementById("resultBox");
+
+  if (isHealthy) {
+    score++;
+    resultTitle.innerText = "Great Choice! ✅";
+    resultTitle.className = "good-text";
+    resultBox.style.borderColor = "#28a745";
+    resultDetails.className = "good-text";
+    // Show Name + Fact
+    resultDetails.innerHTML = `<strong>${snackName}:</strong> ${fact}`;
+  } else {
+    score--;
+    resultTitle.innerText = "Limit this! ❌";
+    resultTitle.className = "bad-text";
+    resultBox.style.borderColor = "#c62828";
+    resultDetails.className = "bad-text";
+    // Show Name + Fact
+    resultDetails.innerHTML = `<strong>${snackName}:</strong> ${fact}`;
+  }
+
+  // Show the box at the bottom
+  resultBox.style.display = "block";
+
+  updateHealth();
+}
+
+function continueGame() {
+  round++;
+  loadRound();
+}
+
+function updateHealth() {
+  document.getElementById("scoreDisplay").innerText = "Score: " + score;
+
+  let fill = 50 + score * 5;
+  fill = Math.max(0, Math.min(100, fill));
+  document.getElementById("healthFill").style.width = fill + "%";
+
+  const face = document.getElementById("face");
+
+  if (score <= -3) face.innerText = "🤮";
+  else if (score === -2) face.innerText = "🤢";
+  else if (score === -1) face.innerText = "☹️";
+  else if (score === 0) face.innerText = "😐";
+  else if (score === 5) face.innerText = "🙂";
+  else if (score === 8) face.innerText = "😊";
+  else if (score >= 15) face.innerText = "🤩";
+  else if (score >= 12) face.innerText = "😁"; 
+  else if (score >= 10) face.innerText = "😄";
+
+ 
+}
+
+function endGame(junkOverload) {
+  document.getElementById("gameScreen").classList.remove("active");
+  document.getElementById("endScreen").classList.add("active");
+
+  if (junkOverload) {
+    document.getElementById("endMessage").innerText =
+      "Game Over! You ate too much junk food and got sick to your stomach. Next time eat healtier foods and limit junk food.";
+    document.getElementById("endFace").innerText = "🤮";
+  } else if (score >= 15) {
+    document.getElementById("endMessage").innerText =
+      "You are a Pro Healthy Eater! Consistently choosing healthy snack options leads to better health!";
+    document.getElementById("endFace").innerText = "🤩";
+  } else if (score >= 12) {
+    document.getElementById("endMessage").innerText =
+      "You really limited junk food and made good healthy choices. This makes you feel healthier and stronger";
+    document.getElementById("endFace").innerText = "😁";
+  } else if (score >= 10) {
+    document.getElementById("endMessage").innerText =
+      "You made a lot of healthy choices. Good for you!";
+    document.getElementById("endFace").innerText = "😄";
+  } else if (score >= 8) {
+    document.getElementById("endMessage").innerText =
+      "You made some good choices, but also ate a fair amount of junk food. Remember to limit junk food for a healthier you!";
+    document.getElementById("endFace").innerText = "🙂";
+  } else if (score >= 5) {
+    document.getElementById("endMessage").innerText =
+      "You ate more healthy foods than junk foods! Next time try eatting more healthy foods for a healthier you!";
+    document.getElementById("endFace").innerText = "😐";
+} else if (score >= 1) {
+    document.getElementById("endMessage").innerText =
+      "You ate a lot of junk food! This can make you feel sluggish and low energy. Try eatting more healthy foods and limit junk foods!";
+    document.getElementById("endFace").innerText = "🤢";
+  } else {
+    document.getElementById("endMessage").innerText = "That was too much junk food!";
+    document.getElementById("endFace").innerText = "🤮";
+  }
+
+  document.getElementById("finalScore").innerText = "Final Score: " + score;
+}
+</script>
+
+</body>
+</html>
